@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -35,28 +35,20 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen flex">
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
-        <div className="flex items-center justify-between p-4">
-          <Link href="/" className="flex items-center gap-2">
-            <LayoutDashboard className="w-8 h-8 text-blue-400" />
-            <span className="text-xl font-bold text-white">CandidateOS</span>
-          </Link>
-          <button
-            className="md:hidden text-gray-400 hover:text-white"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="text-2xl">&times;</span>
-          </button>
+    <div className="min-h-screen flex bg-gray-900">
+      <aside className="hidden md:flex flex-col w-64 bg-gray-800 border-r border-gray-700 fixed h-full">
+        <div className="flex items-center gap-2 p-4 border-b border-gray-700">
+          <LayoutDashboard className="w-8 h-8 text-blue-400" />
+          <span className="text-xl font-bold text-white">CandidateOS</span>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-6 space-y-1">
           {navItems.map((item) => (
             <Link
               key={item.path}
               href={item.path}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
                 location === item.path
                   ? "bg-blue-600 text-white"
                   : "text-gray-300 hover:bg-gray-700 hover:text-white",
@@ -71,33 +63,45 @@ export default function Layout({ children }: LayoutProps) {
         <div className="p-4 border-t border-gray-700">
           <button
             onClick={signOut}
-            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors"
+            className="flex items-center gap-3 w-full px-4 py-3 text-left text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors text-sm font-medium"
           >
             <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 md:ml-64">
+      <main className="flex-1 md:ml-64 min-h-screen">
         <header className="md:hidden flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
           <span className="text-xl font-bold text-white">CandidateOS</span>
           <button
             className="text-gray-400 hover:text-white"
-            onClick={() => setMobileMenuOpen(true)}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            <span className="text-2xl">&#9776;</span>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
           </button>
         </header>
 
-        {children}
-      </main>
+        {mobileMenuOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
 
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
+        <div className="p-4 md:p-8">{children}</div>
+      </main>
     </div>
   );
 }

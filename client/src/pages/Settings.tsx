@@ -2,6 +2,7 @@ import { useTemplates } from "../hooks/useTemplates";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 import {
   Settings as SettingsIcon,
   Moon,
@@ -9,14 +10,17 @@ import {
   Mail,
   Download,
   Upload,
+  Database,
+  CheckCircle,
 } from "lucide-react";
 
 export default function Settings() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { templates, saveDefaultsToDatabase } = useTemplates();
+  const { templates } = useTemplates();
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleThemeChange = (newTheme: "dark" | "light") => {
     setTheme(newTheme);
@@ -24,52 +28,143 @@ export default function Settings() {
 
   const handleSaveDefaultTemplates = async () => {
     try {
+      const { saveDefaultsToDatabase } = await import("../hooks/useTemplates");
       await saveDefaultsToDatabase();
-      alert("Default templates saved successfully!");
+      setMessage("Templates saved successfully!");
+      setTimeout(() => setMessage(""), 3000);
     } catch (e) {
-      alert(
+      setMessage(
         "Failed to save templates: " +
           (e instanceof Error ? e.message : "Unknown error"),
       );
+      setTimeout(() => setMessage(""), 5000);
     }
   };
 
   const handleExportData = async () => {
     setExporting(true);
     try {
-      // This would export all user data as JSON
-      // For MVP, we'll just show a placeholder
-      alert("Export functionality will be implemented in the next version");
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) {
+        setMessage("Please sign in to export data");
+        setExporting(false);
+        return;
+      }
+
+      const { data: jobs } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("user_id", authUser.id);
+
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", authUser.id);
+
+      const { data: followUps } = await supabase
+        .from("follow_ups")
+        .select("*")
+        .eq("user_id", authUser.id);
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        version: "1.0",
+        jobs: jobs || [],
+        contacts: contacts || [],
+        followUps: followUps || [],
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `candidate-os-export-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setMessage("Data exported successfully!");
+      setTimeout(() => setMessage(""), 3000);
     } catch (e) {
-      alert("Failed to export data");
+      setMessage("Failed to export data");
     } finally {
       setExporting(false);
     }
   };
 
-  const handleImportData = async () => {
-    setImporting(true);
-    try {
-      // This would import JSON data
-      // For MVP, we'll just show a placeholder
-      alert("Import functionality will be implemented in the next version");
-    } catch (e) {
-      alert("Failed to import data");
-    } finally {
-      setImporting(false);
-    }
+  const handleImportData = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setImporting(true);
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+        if (!authUser) {
+          setMessage("Please sign in to import data");
+          setImporting(false);
+          return;
+        }
+
+        if (data.jobs && Array.isArray(data.jobs)) {
+          for (const job of data.jobs) {
+            const { id, created_at, updated_at, ...jobData } = job;
+            await supabase.from("jobs").insert({
+              ...jobData,
+              user_id: authUser.id,
+            });
+          }
+        }
+
+        if (data.contacts && Array.isArray(data.contacts)) {
+          for (const contact of data.contacts) {
+            const { id, created_at, updated_at, ...contactData } = contact;
+            await supabase.from("contacts").insert({
+              ...contactData,
+              user_id: authUser.id,
+            });
+          }
+        }
+
+        setMessage("Data imported successfully! Refresh to see changes.");
+        setTimeout(() => setMessage(""), 5000);
+      } catch (e) {
+        setMessage("Failed to import data: Invalid file format");
+      } finally {
+        setImporting(false);
+      }
+    };
+    input.click();
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
         <p className="text-gray-400">Customize your CandidateOS experience</p>
       </div>
 
+      {message && (
+        <div
+          className={`mb-6 p-4 rounded-lg ${message.includes("Failed") ? "bg-red-900/50 border border-red-500 text-red-400" : "bg-green-900/50 border border-green-500 text-green-400"}`}
+        >
+          {message}
+        </div>
+      )}
+
       <div className="space-y-6">
-        {/* Theme Settings */}
-        <div className="card">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center gap-3 mb-4">
             <SettingsIcon className="w-5 h-5 text-blue-400" />
             <h2 className="text-xl font-bold text-white">Appearance</h2>
@@ -77,7 +172,9 @@ export default function Settings() {
 
           <div className="space-y-4">
             <div>
-              <label className="input-label">Theme</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Theme
+              </label>
               <div className="flex gap-3">
                 <button
                   onClick={() => handleThemeChange("dark")}
@@ -106,8 +203,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Email Templates */}
-        <div className="card">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center gap-3 mb-4">
             <Mail className="w-5 h-5 text-green-400" />
             <h2 className="text-xl font-bold text-white">Email Templates</h2>
@@ -123,8 +219,9 @@ export default function Settings() {
 
               <button
                 onClick={handleSaveDefaultTemplates}
-                className="btn btn-primary"
+                className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
+                <CheckCircle className="w-4 h-4 mr-2" />
                 Save Default Templates
               </button>
             </div>
@@ -133,7 +230,7 @@ export default function Settings() {
               <h3 className="text-lg font-semibold text-white mb-3">
                 Available Templates
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-60 overflow-y-auto">
                 {templates.slice(0, 5).map((template) => (
                   <div
                     key={template.id}
@@ -170,10 +267,9 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Data Management */}
-        <div className="card">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center gap-3 mb-4">
-            <Download className="w-5 h-5 text-yellow-400" />
+            <Database className="w-5 h-5 text-yellow-400" />
             <h2 className="text-xl font-bold text-white">Data Management</h2>
           </div>
 
@@ -188,7 +284,7 @@ export default function Settings() {
                 <button
                   onClick={handleExportData}
                   disabled={exporting}
-                  className="btn btn-primary"
+                  className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   {exporting ? "Exporting..." : "Export Data"}
@@ -197,7 +293,7 @@ export default function Settings() {
                 <button
                   onClick={handleImportData}
                   disabled={importing}
-                  className="btn btn-secondary"
+                  className="btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   {importing ? "Importing..." : "Import Data"}
@@ -214,30 +310,26 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Account Information */}
-        <div className="card">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center gap-3 mb-4">
-            <SettingsIcon className="w-5 h-5 text-purple-400" />
+            <Database className="w-5 h-5 text-purple-400" />
             <h2 className="text-xl font-bold text-white">Account</h2>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="input-label">Email</label>
-              <p className="text-gray-300">{user?.email}</p>
+              <label className="block text-sm font-medium text-gray-300">
+                Email
+              </label>
+              <p className="text-gray-300">{user?.email || "Not signed in"}</p>
             </div>
 
             <div>
-              <label className="input-label">User ID</label>
-              <p className="text-gray-500 font-mono text-sm">{user?.id}</p>
-            </div>
-
-            <div>
-              <label className="input-label">Account Created</label>
-              <p className="text-gray-400">
-                {user?.created_at
-                  ? new Date(user.created_at).toLocaleDateString()
-                  : "Unknown"}
+              <label className="block text-sm font-medium text-gray-300">
+                User ID
+              </label>
+              <p className="text-gray-500 font-mono text-sm">
+                {user?.id || "N/A"}
               </p>
             </div>
           </div>
