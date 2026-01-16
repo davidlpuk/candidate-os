@@ -12,6 +12,21 @@ export default function Auth() {
   const [error, setError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (user) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -41,11 +56,6 @@ export default function Auth() {
     if (error) {
       setError(error.message);
     }
-  }
-
-  if (user) {
-    window.location.href = "/";
-    return null;
   }
 
   return (

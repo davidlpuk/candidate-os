@@ -1,16 +1,13 @@
+import { useState, ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import {
-  Home,
   LayoutDashboard,
   LayoutList,
   Users,
-  Calendar,
   Inbox,
   Plus,
   Settings,
-  Moon,
-  Sun,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -19,10 +16,10 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
-  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [location] = useLocation();
 
-  if (!user) return children;
+  if (!user) return <>{children}</>;
 
   const navItems = [
     { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -32,6 +29,10 @@ export default function Layout({ children }: LayoutProps) {
     { path: "/import", label: "Import", icon: Plus },
     { path: "/settings", label: "Settings", icon: Settings },
   ];
+
+  function cn(...classes: (string | boolean | undefined)[]) {
+    return classes.filter(Boolean).join(" ");
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -56,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
               href={item.path}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                location.pathname === item.path
+                location === item.path
                   ? "bg-blue-600 text-white"
                   : "text-gray-300 hover:bg-gray-700 hover:text-white",
               )}
@@ -99,8 +100,4 @@ export default function Layout({ children }: LayoutProps) {
       )}
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
 }

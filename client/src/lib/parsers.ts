@@ -70,9 +70,9 @@ export function parseJobEmail(text: string): ExtractedJob {
   }
 
   const salaryPatterns = [
-    /[£$€]\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K|,?\d{3})?(?:\s*[-–to]+\s*[£$€]?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K|,?\d{3})?)/,
-    /(?:salary|pay|compensation|remuneration)[:\s]*([£$€]?\s*\d+(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K)?(?:\s*[-–to]+\s*[£$€]?\s*\d+(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K)?)?)/i,
-    /(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K)?\s*(?:per|\/)\s*(?:year|annum|annually|hour|month|day))\s*(?:GBP|USD|EUR)?/i,
+    /[£$€]\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|K)?(?:\s*[-–to]+\s*[£$€]?\s*\d+(?:,\d{3})*(?:\.\d+)?\s*(?:k|K)?)?/,
+    /(?:salary|pay|compensation|remuneration)[:\s]*([£$€]?\s*\d+(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K)?)/i,
+    /(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:k|K)?\s*(?:per|\/)\s*(?:year|annum|annually|hour|month|day))/i,
   ];
 
   for (const pattern of salaryPatterns) {
