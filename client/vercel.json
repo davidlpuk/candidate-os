@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "name": "candidate-os",
+  "framework": "vite",
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "cd client && npm run dev",
+  "installCommand": "npm install",
+  "regions": ["iad1"],
+  "env": {
+    "VITE_SUPABASE_URL": "@supabase_url",
+    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key"
+  }
+}
